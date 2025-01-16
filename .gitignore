@@ -1,4 +1,8 @@
 causal_models/__pycache__/
 data_handling/__pycache__/
+causal_models/pgm/__pycache__/
+causal_models/dscm/__pycache__/
 segmentation/__pycache__/
 causal_models/checkpoints/
+causal_models/pgm/checkpoints/
+causal_models/dscm/checkpoints/

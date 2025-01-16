@@ -34,11 +34,11 @@ def norm(batch):
     for k, v in batch.items():
         # if k == 'x':
         #     batch['x'] = (batch['x'].float() - 127.5) / 127.5  # [-1,1]
-        if k in ['age']:
+        if k in ['scanner']:
             batch[k] = batch[k].float()# Age normalised to [0,1]
             # batch[k] = batch[k] / 100.
             # batch[k] = batch[k] *2 -1 #[-1,1]
-        elif k in ['race']:
+        elif k in ['sex']:
             batch[k] = batch[k].float()
         elif k in ['finding']:
             batch[k] = batch[k].float()
@@ -88,18 +88,6 @@ def save_plot(save_path, obs, cfs, do, var_cf_x=None, num_images=10):
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
     plt.close()
 
-
-def get_metrics(preds, targets):
-    for k, v in preds.items():
-        preds[k] = torch.stack(v).squeeze().cpu()
-        targets[k] = torch.stack(targets[k]).squeeze().cpu()
-    stats = {}
-    for k in preds.keys():
-        if k=="age":
-            preds_k = (preds[k] + 1) / 2 *100  # [-1,1] -> [0,100]
-            stats[k+'_mae'] = torch.mean(
-                torch.abs(targets[k] - preds_k)).item() 
-    return stats
 
 @torch.no_grad()
 def vae_epoch(args, vae, dataloader):
@@ -250,7 +238,7 @@ def cf_epoch(args, model, ema, dataloaders, elbo_fn, optimizers, split='train', 
             (f', grad_norm: {grad_norm:.3f}' if is_train else '')
         )
     stats = {k: v / stats['n'] for k, v in stats.items() if k != 'n'}
-    return stats if is_train else (stats, get_metrics(preds, targets))
+    return stats
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()

@@ -205,115 +205,15 @@ def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8):
 
 
 def calculate_loss(pred_batch, target_batch, loss_norm="l1", soft_loss="BCElogits"):
-    "Calculate the losses for pred_bacth"
-    loss=0
+    """Calculate the losses for pred_batch"""
+    loss = 0
     for k in pred_batch.keys():
-        assert pred_batch[k].size()==target_batch[k].size(), f"{k} size does not match, pred_batch size {pred_batch[k].size()}; target batch size {target_batch[k].size()}"
-        if k in ["age", "Left-Lung_volume", "Right-Lung_volume", "Heart_volume"]:
-            if loss_norm=="l1":
-                loss+=torch.nn.L1Loss()(pred_batch[k], target_batch[k]) 
-            elif loss_norm=="l2":
-                loss+=torch.nn.MSELoss()(pred_batch[k], target_batch[k]) 
-        elif k in ["sex", "finding"]:
-            if soft_loss=="BCElogits":
-                loss+=torch.nn.BCEWithLogitsLoss()(pred_batch[k], target_batch[k])
-            elif soft_loss=="l1":
-                loss+=torch.nn.L1Loss()(pred_batch[k], target_batch[k]) 
-        elif k=="race":
-            if soft_loss=="BCElogits":
-                loss+=torch.nn.CrossEntropyLoss()(pred_batch[k], target_batch[k])
-            elif soft_loss=="l1":
-                loss+=torch.nn.L1Loss()(pred_batch[k], target_batch[k]) 
+        assert pred_batch[k].size() == target_batch[k].size(), (
+            f"{k} size does not match, pred_batch size {pred_batch[k].size()}; target batch size {target_batch[k].size()}"
+        )
+        if k in ["sex", "finding", "scanner"]:
+            if soft_loss == "BCElogits":
+                loss += torch.nn.BCEWithLogitsLoss()(pred_batch[k], target_batch[k])
+            elif soft_loss == "l1":
+                loss += torch.nn.L1Loss()(pred_batch[k], target_batch[k])
     return loss
-
-def segmentation_loss(pred_batch, target_batch):
-    """Calculate the segmentation loss."""
-    loss=0
-    for k in pred_batch.keys():
-        assert pred_batch[k].size()==target_batch[k].size(), f"{k} size does not match, pred_batch size {pred_batch[k].size()}; target batch size {target_batch[k].size()}"
-        if k in ["Left-Lung", "Right-Lung", "Heart"]:
-            loss+=BCEDiceloss(pred_batch[k], target_batch[k])
-    return loss
-
-@torch.no_grad()
-def plot_cf_with_original_model(x, cf_x, pa, cf_pa, do, cf_x_orig, var_cf_x=None, var_cf_x_original=None, num_images=8, logger=None):
-    n = num_images  # 8 columns
-    x = (x[:n].detach().cpu() + 1) * 127.5
-    cf_x_orig = (cf_x_orig[:n].detach().cpu() + 1) * 127.5
-    cf_x = (cf_x[:n].detach().cpu() + 1) * 127.5
-    # logger.info(f"x: {x.size()}")
-    fs = 16  # font size
-    m = 5 if var_cf_x is None else 7  # nrows
-    s = 5
-    fig, ax = plt.subplots(m, n, figsize=(n * s - 6, m * s))
-    fig.subplots_adjust(wspace=-0.1, hspace=1.0)
-    _, _ = plot(x, ax=ax[0])
-    _, _ = plot(cf_x_orig, ax=ax[1]) # Counterfactuals before training
-    _, _ = plot(cf_x_orig - x,  ax=ax[2], fig=fig, cmap='RdBu_r', cbar=True,
-                norm=MidpointNormalize(midpoint=0)) # Treatment effect before training
-    _, _ = plot(var_cf_x_original[:n].detach().sqrt().cpu(),
-                    fig=fig, cmap='jet', ax=ax[3], cbar=True, set_cbar_ticks=False)
-    
-    _, _ = plot(cf_x, ax=ax[4]) # Counterfactuals after training
-    _, _ = plot(cf_x - x, ax=ax[5], fig=fig, cmap='RdBu_r', cbar=True,
-                norm=MidpointNormalize(midpoint=0)) # Treatment effect after training
-    _, _ = plot(var_cf_x[:n].detach().sqrt().cpu(),
-                    fig=fig, cmap='jet', ax=ax[6], cbar=True, set_cbar_ticks=False)
-    
-
-    sex_categories = ['male', 'female']  # 0,1
-    race_categories = ['White', 'Asian', 'Black']  # 0,1,2
-    finding_categories = ['No finding', 'Finding']
-
-    for j in range(n):
-        msg = ''
-        for i, (k, v) in enumerate(do.items()):
-            if k == 'sex':
-                vv = sex_categories[int(v[j].item())]
-                kk = 's'
-            elif k == 'age':
-                vv = str(v[j].item())
-                kk = 'a'
-            elif k == 'race':
-                vv = race_categories[int(torch.argmax(v[j], dim=-1))]
-                kk = 'r'
-            elif k =='finding':
-                vv = finding_categories[int(v[j].item())]
-                kk = 'f'
-            msg += kk + '{{=}}' + vv
-            msg += ', ' if (i + 1) < len(list(do.keys())) else ''
-
-        s = str(sex_categories[int(pa['sex'][j].item())])
-        r = str(race_categories[int(torch.argmax(pa['race'][j], dim=-1))])
-        a = str(int(pa['age'][j].item()))
-        f = str(finding_categories[int(pa['finding'][j].item())])
-
-
-        ax[0, j].set_title(f'a={a}, s={s}, \n r={r}, f={f}',
-                           pad=8, fontsize=fs - 4, multialignment='center', linespacing=1.5)
-        ax[1, j].set_title(f'do(${msg}$)', fontsize=fs, pad=10)
-
-        # plot counterfactual
-        cf_s = str(sex_categories[int(cf_pa['sex'][j].item())])
-        cf_a = str(np.round(cf_pa['age'][j].item(), 1))
-        cf_r = str(race_categories[int(torch.argmax(cf_pa['race'][j], dim=-1))])
-
-        ax[1, j].set_xlabel(
-        # ax[2, j].set_title(
-            rf'$\widetilde{{a}}{{=}}{cf_a}, \ \widetilde{{s}}{{=}}{cf_s}, \ \widetilde{{r}}{{=}}{cf_r}$',
-            labelpad=9, fontsize=fs - 4, multialignment='center', linespacing=1.25)
-        
-        # ax[3, j].set_title(f'do(${msg}$)', fontsize=fs, pad=20)
-        ax[3, j].set_xlabel(
-            rf'$\widetilde{{a}}{{=}}{cf_a}, \ \widetilde{{s}}{{=}}{cf_s}, \ \widetilde{{r}}{{=}}{cf_r}$',
-            labelpad=9, fontsize=fs - 4, multialignment='center', linespacing=1.25)
-
-    ax[0, 0].set_ylabel('Observation', fontsize=fs + 2, labelpad=8)
-    ax[1, 0].set_ylabel('Counterfactual', fontsize=fs + 2, labelpad=8)
-    ax[2, 0].set_ylabel('Treatment Effect', fontsize=fs + 2, labelpad=8)
-    ax[3, 0].set_ylabel('Uncertainty', fontsize=fs + 2, labelpad=8)
-
-    ax[4, 0].set_ylabel('Counterfactual', fontsize=fs + 2, labelpad=8)
-    ax[5, 0].set_ylabel('Treatment Effect', fontsize=fs + 2, labelpad=8)
-    ax[6, 0].set_ylabel('Uncertainty', fontsize=fs + 2, labelpad=8)
-    return fig
