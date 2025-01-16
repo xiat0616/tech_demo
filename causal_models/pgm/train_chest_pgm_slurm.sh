@@ -1,15 +1,14 @@
 #!/bin/bash
 
-exp_name="sup_pgm_mimic_crop"
-parents="age_race_sex_finding"
+exp_name="sup_pgm_padchest"
+parents="scanner_sex_finding"
 mkdir -p "checkpoints/$parents/$exp_name"
 
 sbatch <<EOT
 #!/bin/bash
 
-#SBATCH -p gpus                                                 # Partition (queue)
-#SBATCH --nodes=1                                               # Number of compute nodes
-#SBATCH --gres=gpu:teslap40:1                                   # Number of GPUs per node, e.g. gpu:teslap40:2. Note: should match ntasks-per-node
+#SBATCH --partition=gpus24            # partition (queue). Either gpus, gpus24, gpus48
+#SBATCH --gres=gpu:1                # gpu:n, where n = number of GPUs
 #SBATCH --output=checkpoints/$parents/$exp_name/slurm.%j.log    # Output and error log
 
 nvidia-smi
@@ -18,13 +17,13 @@ source activate tian_breast
 
 srun python train_pgm.py \
     --exp_name=$exp_name \
-    --hps mimic256_64 \
+    --hps padchest224_224 \
     --setup='sup_pgm' \
-    --parents_x age race sex finding \
+    --parents_x scanner sex finding \
     --lr=0.001 \
     --batch_size=32 \
     --wd=0.05 \
     --eval_freq=1 \
-    --input_res=512 \
+    --input_res=224 \
     --enc_net="cnn" \ 
 EOT

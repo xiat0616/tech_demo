@@ -215,7 +215,7 @@ if __name__ == '__main__':
             print(f'Checkpoint not found at: {args.load_path}')
 
     # Load data
-    dataloaders = setup_dataloaders(args, cache=False, shuffle_train=False)
+    dataloaders = setup_dataloaders(args, cache=False, shuffle_train=True)
 
     # Init model
     pyro.clear_param_store()

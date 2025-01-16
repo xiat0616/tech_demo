@@ -9,7 +9,7 @@ from causal_models.train_setup import setup_directories, setup_tensorboard, setu
 # from hvae2 import HVAE2
 # from hvae4_attn import HVAE4_attn
 import torch.nn.functional as F
-from pgm.utils_pgm import check_nan, update_stats, calculate_loss, plot_cf
+from pgm.utils_pgm import check_nan, update_stats, calculate_loss
 
 def vae_preprocess(args, pa, device="cuda:0"):
     pa = torch.cat([pa[k] for k in args.parents_x], dim=1)
@@ -114,13 +114,6 @@ class DSCM(nn.Module):
         aux_loss = calculate_loss(pred_batch=pred_batch, 
                                 target_batch=soft_labels, 
                                 loss_norm="l2")
-
-        # logger.info(f"soft_labels: {soft_labels}, pred_batch: {pred_batch}, do: {do}, cfs: {cfs}")
-
-        # aux_loss = elbo_fn.differentiable_loss(
-        #     self.predictor.model_anticausal,
-        #     self.predictor.guide_pass, **cfs
-        # ) / cfs['x'].shape[0]
 
         with torch.no_grad():
             sg = self.eps - vae_out['elbo']

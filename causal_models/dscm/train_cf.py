@@ -55,12 +55,7 @@ def preprocess(batch, device="cuda:0"):
     for k, v in batch.items():
         if k == 'x':
             batch['x'] = batch['x'].float().to(device)*2-1 # [-1,1]
-        elif k in ['age']:
-            batch[k] = batch[k].float().to(device) # age normlised to [0,1] already
-        elif k in ['race']:
-            batch[k] =batch[k].float().to(device)
-#             print("batch[race]: ", batch[k])
-        elif k in ['finding']:
+        elif k in ['finding', 'sex', 'scanner']:
             batch[k] = batch[k].float().to(device)
             # batch[k] = F.one_hot(batch[k], num_classes=2).squeeze().float().cuda()
         else:

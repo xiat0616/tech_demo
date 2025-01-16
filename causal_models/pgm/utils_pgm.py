@@ -135,31 +135,27 @@ def plot(x, fig=None, ax=None, nrows=1, cmap='Greys_r', norm=None, cbar=False, s
 
 
 @torch.no_grad()
-def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8, logger=None):
-    n = num_images  # 8 columns
-    # print(f"x min: {x.min()}, x max: {x.max()}")
-    # print(f"cf_x min: {cf_x.min()}, cf_x max: {cf_x.max()}")
-    x = (x[:n].detach().cpu()+1) * 127.5
-    cf_x = (cf_x[:n].detach().cpu()+1) * 127.5
-    # logger.info(f"x: {x.size()}")
-    fs = 16  # font size
-    m = 3 if var_cf_x is None else 4  # nrows
+def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8):
+    n = num_images  # Number of columns
+    x = (x[:n].detach().cpu() + 1) * 127.5
+    cf_x = (cf_x[:n].detach().cpu() + 1) * 127.5
+
+    fs = 16  # Font size
+    m = 3 if var_cf_x is None else 4  # Number of rows
     s = 5
-    fig, ax = plt.subplots(m, n, figsize=(n * s +6, m * s))
-    # fig, ax = plt.subplots(m, n, figsize=(n*s, m*s+2))
-    # logger.info(f"ax: {np.shape(ax)}")
-    # logger.info(f"ax[0]: {type(ax[0])} {np.shape(ax[0])}, m: {m}, s: {s}, n: {n}")
+    fig, ax = plt.subplots(m, n, figsize=(n * s + 6, m * s))
+
     _, _ = plot(x, ax=ax[0])
     _, _ = plot(cf_x, ax=ax[1])
-    _, _ = plot(cf_x - x, ax=ax[2], fig=fig, cmap='RdBu_r', cbar=True,
+    _, _ = plot(cf_x - x, ax=ax[2], fig=fig, cmap='RdBu_r', cbar=True, 
                 norm=MidpointNormalize(midpoint=0))
     if var_cf_x is not None:
-        _, _ = plot(var_cf_x[:n].detach().sqrt().cpu(),
-                    fig=fig, cmap='jet', ax=ax[3], cbar=True, set_cbar_ticks=False)
+        _, _ = plot(var_cf_x[:n].detach().sqrt().cpu(), fig=fig, cmap='jet', 
+                    ax=ax[3], cbar=True, set_cbar_ticks=False)
 
-    sex_categories = ['male', 'female']  # 0,1
-    race_categories = ['White', 'Asian', 'Black']  # 0,1,2
-    finding_categories = ['No finding', 'Finding']
+    sex_categories = ['male', 'female']  # 0, 1
+    finding_categories = ['No finding', 'Finding']  # 0, 1
+    scanner_categories = ['Phillips', 'Imaging']  # 0, 1
 
     for j in range(n):
         msg = ''
@@ -167,71 +163,46 @@ def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8, logger=None):
             if k == 'sex':
                 vv = sex_categories[int(v[j].item())]
                 kk = 's'
-            elif k == 'age':
-                vv = str(v[j].item())
-                kk = 'a'
-            elif k == 'race':
-                vv = race_categories[int(torch.argmax(v[j], dim=-1))]
-                kk = 'r'
-            elif k =='finding':
+            elif k == 'finding':
                 vv = finding_categories[int(v[j].item())]
                 kk = 'f'
-            elif k == 'Left-Lung_volume':
-                vv = f"{v[j].item():.2f}"
-                kk = 'llv'
-            elif k == 'Right-Lung_volume':
-                vv = f"{v[j].item():.2f}"
-                kk = 'rlv'
-            elif k == 'Heart_volume':
-                vv = f"{v[j].item():.2f}"
-                kk = 'hv'
+            elif k == 'scanner':
+                vv = scanner_categories[int(v[j].item())]
+                kk = 'sc'
+            else:
+                continue
             msg += kk + '{{=}}' + vv
             msg += ', ' if (i + 1) < len(list(do.keys())) else ''
 
-        if 'Left-Lung_volume' in pa.keys():
-            llv = float(pa['Left-Lung_volume'][j].item())
-            rlv = float(pa['Right-Lung_volume'][j].item())
-            hv = float(pa['Heart_volume'][j].item())
-        elif 'sex' in pa.keys():
+        if 'sex' in pa.keys():
             s = str(sex_categories[int(pa['sex'][j].item())])
-            r = str(race_categories[int(torch.argmax(pa['race'][j], dim=-1))])
-            a = str(int(pa['age'][j].item()))
             f = str(finding_categories[int(pa['finding'][j].item())])
-       
-        if 'Left-Lung_volume' in pa.keys():
-            ax[0, j].set_title(f'llv={llv:.2f}, rlv={rlv:.2f}, \n hv={hv:.2f}',
-                           pad=8, fontsize=fs - 4, multialignment='center', linespacing=1.5)
-            ax[1, j].set_title(f'do(${msg}$)', fontsize=fs, pad=10)
-        elif 'sex' in pa.keys():
-            ax[0, j].set_title(f'a={a}, s={s}, \n r={r}, f={f}',
-                           pad=8, fontsize=fs - 4, multialignment='center', linespacing=1.5)
+            sc = str(scanner_categories[int(pa['scanner'][j].item())])
+
+        if 'sex' in pa.keys():
+            ax[0, j].set_title(f's={s}, f={f}, sc={sc}',
+                               pad=8, fontsize=fs - 4, 
+                               multialignment='center', linespacing=1.5)
             ax[1, j].set_title(f'do(${msg}$)', fontsize=fs, pad=10)
 
-        # plot counterfactual
-        if 'Left-Lung_volume' in pa.keys():
-            cf_llv = cf_pa['Left-Lung_volume'][j].item()
-            cf_rlv = cf_pa['Right-Lung_volume'][j].item()
-            cf_hv = cf_pa['Heart_volume'][j].item()
-
-            ax[1, j].set_xlabel(
-                rf'$\widetilde{{llv}}{{=}}{cf_llv:.2f}, \ \widetilde{{rlv}}{{=}}{cf_rlv:.2f}, \ \widetilde{{hv}}{{=}}{cf_hv:.2f}$',
-                labelpad=9, fontsize=fs - 4, multialignment='center', linespacing=1.25)
-        elif 'sex' in pa.keys():
+        # Plot counterfactual
+        if 'sex' in cf_pa.keys():
             cf_s = str(sex_categories[int(cf_pa['sex'][j].item())])
-            cf_a = str(np.round(cf_pa['age'][j].item(), 1))
-            cf_r = str(race_categories[int(torch.argmax(cf_pa['race'][j], dim=-1))])
             cf_f = str(finding_categories[int(cf_pa['finding'][j].item())])
+            cf_sc = str(scanner_categories[int(cf_pa['scanner'][j].item())])
 
             ax[1, j].set_xlabel(
-                rf'$\widetilde{{a}}{{=}}{cf_a}, \ \widetilde{{s}}{{=}}{cf_s}, \ \widetilde{{r}}{{=}}{cf_r},  \ \widetilde{{f}}{{=}}{cf_f}$',
+                rf'$\widetilde{{s}}{{=}}{cf_s}, \ \widetilde{{f}}{{=}}{cf_f}, \ \widetilde{{sc}}{{=}}{cf_sc}$',
                 labelpad=9, fontsize=fs - 4, multialignment='center', linespacing=1.25)
-        
+
     ax[0, 0].set_ylabel('Observation', fontsize=fs + 2, labelpad=8)
     ax[1, 0].set_ylabel('Counterfactual', fontsize=fs + 2, labelpad=8)
     ax[2, 0].set_ylabel('Treatment Effect', fontsize=fs + 2, labelpad=8)
     if var_cf_x is not None:
         ax[3, 0].set_ylabel('Uncertainty', fontsize=fs + 2, labelpad=8)
+
     return fig
+
 
 def calculate_loss(pred_batch, target_batch, loss_norm="l1", soft_loss="BCElogits"):
     "Calculate the losses for pred_bacth"

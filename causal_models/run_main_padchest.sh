@@ -1,8 +1,8 @@
 #!/bin/bash
-beta=3
+beta=9
 z_max_res=32
 exp_name="padchest224_224_beta_${beta}"
-parents='scanner_age_sex_finding'
+parents='scanner_sex_finding'
 
 sbatch <<EOT
 #!/bin/bash
@@ -21,8 +21,8 @@ srun python main.py \
     --wd 5e-2 \
     --epochs 1000 \
     --exp_name=$exp_name \
-    --context_dim 6 \
-    --parents scanner age sex finding \
+    --context_dim 3 \
+    --parents scanner sex finding \
     --beta=$beta \
     --bottleneck 4 \
     --z_max_res=$z_max_res \

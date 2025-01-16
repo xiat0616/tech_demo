@@ -419,8 +419,39 @@ def write_images(args, model, batch):
         cf_loc, _ = model.forward_latents(zs, parents=_cf_pa)
 
         # plot this figure
-        plot_counterfactual_viz_embed(args, batch["x"], cf_loc, pa, cf_pa, do, rec_loc)
-        del rec_loc, cf_loc
-        return
+        return plot_counterfactual_viz_mimic(
+            args, batch["x"], cf_loc, pa, cf_pa, do, rec_loc
+        )
+    elif "padchest" in args.hps:
+        pa = {k: batch[k] for k in args.parents_x}
+        _pa = torch.cat([batch[k] for k in args.parents_x], dim=1)
+        _pa = (
+            _pa[..., None, None]
+            .repeat(1, 1, *tuple(args.input_res))
+            .to(args.device)
+            .float()
+        )
+
+        rec_loc, _ = model.forward_latents(zs, parents=_pa)
+        # counterfactuals (focus on changing sex)
+        cf_pa = copy.deepcopy(pa)
+        cf_pa = {k: batch[k] for k in args.parents_x}
+
+        cf_pa["sex"] = 1 - cf_pa["sex"]
+        do = {"sex": cf_pa["sex"]}
+
+        _cf_pa = torch.cat([cf_pa[k] for k in args.parents_x], dim=1)
+        _cf_pa = (
+            _cf_pa[..., None, None]
+            .repeat(1, 1, *tuple(args.input_res))
+            .to(args.device)
+            .float()
+        )
+        cf_loc, _ = model.forward_latents(zs, parents=_cf_pa)
+
+        # plot this figure
+        return plot_counterfactual_viz_mimic(
+            args, batch["x"], cf_loc, pa, cf_pa, do, rec_loc
+        )
     else:
         raise NotImplementedError
