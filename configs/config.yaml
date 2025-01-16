@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - data: mimic256_64_with_seg
+  - trainer: base
+  - model: base
+  - experiment: base
+
+project_name: chest X ray generation
+seed: 11
+mixed_precision: False
+is_unit_test_config: False

@@ -1,0 +1,15 @@
+defaults:
+  - base.yaml
+  - _self_
+_target_: data_handling.pad_chest.PadChestDataModule
+dataset: PadChest
+batch_size: 4
+num_workers: 12
+augmentations:
+  resize: [224, 224]
+  # center_crop: [256, 64]
+  horizontal_flip: False
+input_channels: 1
+domain: None
+cache: True
+seg_target_list: ["Left-Lung", "Right-Lung", "Heart"]
