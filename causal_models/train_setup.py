@@ -218,10 +218,10 @@ def setup_dataloaders(args, cache: bool = True, shuffle_train=True):
         if shuffle_train:
             class_idx = [] 
             for i in range(2):
-                sex_list = np.where(data_module.dataset_train.sex == i)[0]
+                finding_list = np.where(data_module.dataset_train.finding == i)[0]
                 
                 class_idx.append(
-                    sex_list
+                    finding_list
                 )
 
             n_batches = len(data_module.dataset_train) // batch_size
@@ -255,10 +255,10 @@ def setup_dataloaders(args, cache: bool = True, shuffle_train=True):
         if shuffle_valid:
             class_idx = [] # Balance for both scanner and density
             for i in range(2):
-                sex_list = np.where(data_module.dataset_val.sex == i)[0]
+                finding_list = np.where(data_module.dataset_val.finding_list == i)[0]
                 
                 class_idx.append(
-                    sex_list
+                    finding_list
                 )
             
             n_batches = len(data_module.dataset_val) // batch_size

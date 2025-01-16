@@ -1,19 +1,19 @@
 #!/bin/bash
+beta=3
+z_max_res=32
+exp_name="mimic_crop_256_64_beta_${beta}"
+parents='age_race_sex_finding'
+
+sbatch <<EOT
+#!/bin/bash
+
+#SBATCH --partition=gpus24            # partition (queue). Either gpus, gpus24, gpus48
+#SBATCH --gres=gpu:1                # gpu:n, where n = number of GPUs
+#SBATCH --output=checkpoints/$parents/$exp_name/slurm.%j.log
 
 source activate tian_breast
 
-beta=3
-z_max_res=32
 
-#SBATCH -c 16                       # Number of CPU Cores (16)
-#SBATCH -p gpushigh                 # Partition (queue)
-#SBATCH --gres gpu:1                # gpu:n, where n = number of GPUs
-#SBATCH --mem 72G                  # memory pool for all cores
-#SBATCH --nodelist loki          	# SLURM node
-#SBATCH --output=checkpoints/$parents/$exp_name/slurm.%j.log
-
-exp_name="mimic_crop_256_64_beta_${beta}"
-parents='age_race_sex_finding'
 python main.py \
     --hps mimic256_64 \
     --lr 1e-3 \
@@ -26,5 +26,6 @@ python main.py \
     --beta=$beta \
     --bottleneck 4 \
     --z_max_res=$z_max_res \
+EOT
 
 

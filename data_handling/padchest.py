@@ -148,11 +148,11 @@ class PadChestDataset(Dataset):
         print(df.pneumonia.value_counts(normalize=True))
         print(df.PatientSex_DICOM.value_counts(normalize=True))
         self.parents = parents
-        self.pneumonia = df.pneumonia.astype(int).values
+        self.finding = df.pneumonia.astype(int).values
         self.img_paths = df.ImageID.values
-        self.genders = df.PatientSex_DICOM.values
+        self.sex = df.PatientSex_DICOM.values
         self.ages = df.PatientAge.values
-        self.manufacturers = df.Manufacturer.values
+        self.scanner = df.Manufacturer.values
         self.transform = transform
         self.target_size = target_size
         self.seg_target_list = seg_target_list
@@ -214,10 +214,10 @@ class PadChestDataset(Dataset):
             _segs = self.read_segs(idx)
             seg_volumes = return_seg_volumes(_segs)
 
-        sample["finding"] = self.pneumonia[idx]
+        sample["finding"] = self.finding[idx]
         sample["age"] = self.ages[idx] / 100
-        sample["sex"] = 0 if self.genders[idx] == "M" else 1
-        sample["scanner"] = 0 if self.manufacturers[idx] == "Phillips" else 1
+        sample["sex"] = 0 if self.sex[idx] == "M" else 1
+        sample["scanner"] = 0 if self.scanner[idx] == "Phillips" else 1
         sample["shortpath"] = self.img_paths[idx]
 
         if seg_volumes is not None:
@@ -243,78 +243,17 @@ class PadChestDataset(Dataset):
 
         return sample
 
-# class PadChestDataModule(BaseDataModuleClass):
-#     def create_datasets(self):
-#         self.target_size = self.config.data.augmentations.resize
-
-#         # Load the DataFrames from pre-saved CSV files in PADCHEST_ROOT
-#         self.train_df = pd.read_csv(PADCHEST_ROOT / "train_dataset.csv")
-#         self.val_df = pd.read_csv(PADCHEST_ROOT / "val_dataset.csv")
-#         self.test_df = pd.read_csv(PADCHEST_ROOT / "test_dataset.csv")
-
-#         self.dataset_train = PadChestDataset(
-#             df=self.train_df,
-#             target_size=self.target_size,
-#             transform=self.train_tsfm,
-#             parents=self.parents,
-#             cache=self.config.data.cache,
-#             seg_target_list=self.config.data.seg_target_list,
-#         )
-
-#         self.dataset_val = PadChestDataset(
-#             df=self.val_df,
-#             target_size=self.target_size,
-#             transform=self.val_tsfm,
-#             parents=self.parents,
-#             cache=self.config.data.cache,
-#             seg_target_list=self.config.data.seg_target_list,
-#         )
-
-#         self.dataset_test = PadChestDataset(
-#             df=self.test_df,
-#             target_size=self.target_size,
-#             transform=self.val_tsfm,
-#             parents=self.parents,
-#             cache=True,
-#             seg_target_list=self.config.data.seg_target_list,
-#         )
-
 class PadChestDataModule(BaseDataModuleClass):
     def create_datasets(self):
         self.target_size = self.config.data.augmentations.resize
-        df = prepare_padchest_csv()
-        train_val_id, test_id = train_test_split(
-            df.PatientID.unique(),
-            test_size=0.20,
-            random_state=33,
-        )
 
-        train_id, val_id = train_test_split(
-            train_val_id,
-            test_size=0.10,
-            random_state=33,
-        )
-
-        if self.config.data.prop_train < 1.0:
-            rng = np.random.default_rng(self.config.seed)
-            train_id = rng.choice(
-                train_id,
-                size=int(self.config.data.prop_train * train_id.shape[0]),
-                replace=False,
-            )
-
-        # Create DataFrames for train, val, and test splits
-        train_df = df.loc[df.PatientID.isin(train_id)]
-        val_df = df.loc[df.PatientID.isin(val_id)]
-        test_df = df.loc[df.PatientID.isin(test_id)]
-
-        # Save the DataFrames to CSV files in the current folder
-        train_df.to_csv("train_dataset.csv", index=False)
-        val_df.to_csv("val_dataset.csv", index=False)
-        test_df.to_csv("test_dataset.csv", index=False)
+        # Load the DataFrames from pre-saved CSV files in PADCHEST_ROOT
+        self.train_df = pd.read_csv(PADCHEST_ROOT / "train_dataset.csv")
+        self.val_df = pd.read_csv(PADCHEST_ROOT / "val_dataset.csv")
+        self.test_df = pd.read_csv(PADCHEST_ROOT / "test_dataset.csv")
 
         self.dataset_train = PadChestDataset(
-            df=train_df,
+            df=self.train_df,
             target_size=self.target_size,
             transform=self.train_tsfm,
             parents=self.parents,
@@ -323,7 +262,7 @@ class PadChestDataModule(BaseDataModuleClass):
         )
 
         self.dataset_val = PadChestDataset(
-            df=val_df,
+            df=self.val_df,
             target_size=self.target_size,
             transform=self.val_tsfm,
             parents=self.parents,
@@ -332,10 +271,71 @@ class PadChestDataModule(BaseDataModuleClass):
         )
 
         self.dataset_test = PadChestDataset(
-            df=test_df,
+            df=self.test_df,
             target_size=self.target_size,
             transform=self.val_tsfm,
             parents=self.parents,
             cache=True,
             seg_target_list=self.config.data.seg_target_list,
         )
+
+# class PadChestDataModule(BaseDataModuleClass):
+#     def create_datasets(self):
+#         self.target_size = self.config.data.augmentations.resize
+#         df = prepare_padchest_csv()
+#         train_val_id, test_id = train_test_split(
+#             df.PatientID.unique(),
+#             test_size=0.20,
+#             random_state=33,
+#         )
+
+#         train_id, val_id = train_test_split(
+#             train_val_id,
+#             test_size=0.10,
+#             random_state=33,
+#         )
+
+#         if self.config.data.prop_train < 1.0:
+#             rng = np.random.default_rng(self.config.seed)
+#             train_id = rng.choice(
+#                 train_id,
+#                 size=int(self.config.data.prop_train * train_id.shape[0]),
+#                 replace=False,
+#             )
+
+#         # Create DataFrames for train, val, and test splits
+#         train_df = df.loc[df.PatientID.isin(train_id)]
+#         val_df = df.loc[df.PatientID.isin(val_id)]
+#         test_df = df.loc[df.PatientID.isin(test_id)]
+
+#         # Save the DataFrames to CSV files in the current folder
+#         train_df.to_csv("train_dataset.csv", index=False)
+#         val_df.to_csv("val_dataset.csv", index=False)
+#         test_df.to_csv("test_dataset.csv", index=False)
+
+#         self.dataset_train = PadChestDataset(
+#             df=train_df,
+#             target_size=self.target_size,
+#             transform=self.train_tsfm,
+#             parents=self.parents,
+#             cache=self.config.data.cache,
+#             seg_target_list=self.config.data.seg_target_list,
+#         )
+
+#         self.dataset_val = PadChestDataset(
+#             df=val_df,
+#             target_size=self.target_size,
+#             transform=self.val_tsfm,
+#             parents=self.parents,
+#             cache=self.config.data.cache,
+#             seg_target_list=self.config.data.seg_target_list,
+#         )
+
+#         self.dataset_test = PadChestDataset(
+#             df=test_df,
+#             target_size=self.target_size,
+#             transform=self.val_tsfm,
+#             parents=self.parents,
+#             cache=True,
+#             seg_target_list=self.config.data.seg_target_list,
+#         )
