@@ -31,7 +31,7 @@ def preprocess(batch, device="cuda:0"):
             batch_new[k] = batch[k].float().to(device) 
         elif k in ['race']:
             batch_new[k] =batch[k].float().to(device) 
-        elif k in ['finding']:
+        elif k in ['finding','scanner']:
             batch_new[k] = batch[k].float().to(device) 
         else:
             try:
@@ -120,7 +120,7 @@ def eval_epoch(model, dataloader):
         for batch in dataloader:
             targets_k.extend(batch[k])
         targets_k = torch.stack(targets_k)
-        if k in ['sex','finding']:
+        if k in ['sex','finding','scanner']:
             stats[k+'_acc'] = (targets_k.squeeze(-1) == torch.round(preds[k])).sum().item() / targets_k.shape[0]
             stats[k+'_rocauc'] = roc_auc_score(
                 targets_k.numpy(), preds[k].numpy(), average='macro')
