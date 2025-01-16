@@ -1,4 +1,4 @@
 causal_models/__pycache__/
 data_handling/__pycache__/
 segmentation/__pycache__/
-
+causal_models/checkpoints/

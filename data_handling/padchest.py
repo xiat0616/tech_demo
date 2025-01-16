@@ -146,7 +146,8 @@ class PadChestDataset(Dataset):
         df.reset_index(inplace=True)
         print(f"Len {len(df)}")
         print(df.pneumonia.value_counts(normalize=True))
-        print(df.PatientSex_DICOM.value_counts(normalize=True))
+        print(df.pneumonia.value_counts(normalize=True))
+        print(df.Manufacturer.value_counts(normalize=True))
         self.parents = parents
         self.finding = df.pneumonia.astype(int).values
         self.img_paths = df.ImageID.values
@@ -210,7 +211,7 @@ class PadChestDataset(Dataset):
         # Get seg volumes
         seg_volumes = None
         sample = {}
-        if self.seg_target_list is not None:
+        if self.seg_target_list!="None":
             _segs = self.read_segs(idx)
             seg_volumes = return_seg_volumes(_segs)
 

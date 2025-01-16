@@ -94,14 +94,14 @@ def main(args):
         args.best_loss = float("inf")
 
     # train
-    try:
-        trainer(args, model, ema, dataloaders, optimizer, scheduler, writer, logger)
-    except:  # noqa E722
-        print(traceback.format_exc())
-        if input("Training interrupted, keep logs? [Y/n]: ") == "n":
-            if input(f"Send '{args.save_dir}' to Trash? [y/N]: ") == "y":
-                send2trash.send2trash(args.save_dir)
-                print("Done.")
+    # try:
+    trainer(args, model, ema, dataloaders, optimizer, scheduler, writer, logger)
+    # except:  # noqa E722
+        # print(traceback.format_exc())
+        # if input("Training interrupted, keep logs? [Y/n]: ") == "n":
+        #     if input(f"Send '{args.save_dir}' to Trash? [y/N]: ") == "y":
+        #         send2trash.send2trash(args.save_dir)
+        #         print("Done.")
 
 
 if __name__ == "__main__":

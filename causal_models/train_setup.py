@@ -253,9 +253,9 @@ def setup_dataloaders(args, cache: bool = True, shuffle_train=True):
 
         shuffle_valid = shuffle_train
         if shuffle_valid:
-            class_idx = [] # Balance for both scanner and density
+            class_idx = [] # Balance for both finding
             for i in range(2):
-                finding_list = np.where(data_module.dataset_val.finding_list == i)[0]
+                finding_list = np.where(data_module.dataset_val.finding == i)[0]
                 
                 class_idx.append(
                     finding_list
