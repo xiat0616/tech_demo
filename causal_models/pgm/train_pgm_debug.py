@@ -17,7 +17,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from pyro.infer import config_enumerate
 from sklearn.metrics import roc_auc_score
-from causal_models.pgm.chest_pgm import FlowPGM
+from causal_models.pgm.chest_pgm_debug import FlowPGM
 from causal_models.pgm.utils_pgm import update_stats, calculate_loss
 from causal_models.pgm.layers import TraceStorage_ELBO
 from torch.optim.lr_scheduler import ReduceLROnPlateau

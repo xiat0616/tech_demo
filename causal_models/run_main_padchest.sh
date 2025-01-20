@@ -1,5 +1,5 @@
 #!/bin/bash
-beta=9
+beta=3
 z_max_res=32
 exp_name="padchest224_224_beta_${beta}"
 parents='scanner_sex_finding'
@@ -27,4 +27,3 @@ srun python main.py \
     --bottleneck 4 \
     --z_max_res=$z_max_res \
 EOT
-

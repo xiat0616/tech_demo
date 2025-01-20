@@ -105,8 +105,8 @@ def setup_dataloaders(args, cache: bool = True, shuffle_train=True):
                 pin_memory=data_module.config.data.pin_memory,
             )
         dataloaders = {
-            "train": train_loader,
-            "valid": valid_loader,
+            "train": train_loader, 
+            "valid": valid_loader, 
             "test": data_module.test_dataloader(),
         }
 
@@ -288,7 +288,7 @@ def setup_dataloaders(args, cache: bool = True, shuffle_train=True):
                 pin_memory=data_module.config.data.pin_memory,
             )
         dataloaders = {
-            "train": train_loader,
+            "train": train_loader, 
             "valid": valid_loader,
             "test": data_module.test_dataloader(),
         }

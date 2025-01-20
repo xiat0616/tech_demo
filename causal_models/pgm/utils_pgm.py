@@ -204,9 +204,12 @@ def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8):
     return fig
 
 
-def calculate_loss(pred_batch, target_batch, loss_norm="l1", soft_loss="BCElogits"):
+def calculate_loss(pred_batch_, target_batch, loss_norm="l1", soft_loss="BCElogits"):
     """Calculate the losses for pred_batch"""
     loss = 0
+    pred_batch = {}
+    for k in pred_batch_.keys():
+        pred_batch[k] = torch.squeeze(pred_batch_[k], dim=-1)
     for k in pred_batch.keys():
         assert pred_batch[k].size() == target_batch[k].size(), (
             f"{k} size does not match, pred_batch size {pred_batch[k].size()}; target batch size {target_batch[k].size()}"
@@ -216,4 +219,9 @@ def calculate_loss(pred_batch, target_batch, loss_norm="l1", soft_loss="BCElogit
                 loss += torch.nn.BCEWithLogitsLoss()(pred_batch[k], target_batch[k])
             elif soft_loss == "l1":
                 loss += torch.nn.L1Loss()(pred_batch[k], target_batch[k])
+        elif k in ["age"]:
+            if loss_norm=="l1":
+                loss+=torch.nn.L1Loss()(pred_batch[k], target_batch[k]) 
+            elif loss_norm=="l2":
+                loss+=torch.nn.MSELoss()(pred_batch[k], target_batch[k]) 
     return loss

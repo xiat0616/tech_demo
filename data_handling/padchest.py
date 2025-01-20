@@ -146,8 +146,15 @@ class PadChestDataset(Dataset):
         df.reset_index(inplace=True)
         print(f"Len {len(df)}")
         print(df.pneumonia.value_counts(normalize=True))
-        print(df.pneumonia.value_counts(normalize=True))
         print(df.Manufacturer.value_counts(normalize=True))
+        # Transform 'Manufacturer' into 0 or 1
+        manufacturer_mapping = {"Phillips": 0, "OtherManufacturerName": 1}  # Replace with actual manufacturer names
+        df["Manufacturer"] = df.Manufacturer.map(manufacturer_mapping).fillna(1).astype(int)
+
+        # Transform 'PatientSex_DICOM' into 0 or 1
+        sex_mapping = {"M": 0, "F": 1}
+        df["PatientSex_DICOM"] = df.PatientSex_DICOM.map(sex_mapping).fillna(-1).astype(int)
+
         self.parents = parents
         self.finding = df.pneumonia.astype(int).values
         self.img_paths = df.ImageID.values
@@ -215,10 +222,10 @@ class PadChestDataset(Dataset):
             _segs = self.read_segs(idx)
             seg_volumes = return_seg_volumes(_segs)
 
-        sample["finding"] = self.finding[idx]
-        sample["age"] = self.ages[idx] / 100
-        sample["sex"] = 0 if self.sex[idx] == "M" else 1
-        sample["scanner"] = 0 if self.scanner[idx] == "Phillips" else 1
+        sample["finding"] = torch.tensor(self.finding[idx]).unsqueeze(-1)
+        sample["age"] = torch.tensor(self.ages[idx]).unsqueeze(-1)  / 100
+        sample["sex"] = torch.tensor(self.sex[idx]).unsqueeze(-1)
+        sample["scanner"] = torch.tensor(self.scanner[idx]).unsqueeze(-1)
         sample["shortpath"] = self.img_paths[idx]
 
         if seg_volumes is not None:

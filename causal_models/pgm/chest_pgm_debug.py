@@ -94,13 +94,11 @@ class FlowPGM(BasePGM):
     def __init__(self, args):
         super().__init__()
         self.variables = {
-            "scanner": "binary",
             "sex": "binary",
             "finding": "binary",
         }
-        # log space for sex and scanner
+        # log space for sex 
         self.sex_logit = nn.Parameter(np.log(1 / 2) * torch.ones(1))
-        self.scanner_logit = nn.Parameter(np.log(1 / 2) * torch.ones(1))
         self.finding_logit = nn.Parameter(np.log(1 / 2) * torch.ones(1))
         
         if args.setup != "sup_pgm":
@@ -125,8 +123,6 @@ class FlowPGM(BasePGM):
             }
             # q(s | x) ~ Bernoulli(f(x))
             self.encoder_s = ResNet18(num_outputs=1, **kwargs)
-            # q(scanner | x) ~ Bernoulli(f(x))
-            self.encoder_scanner = ResNet18(num_outputs=1, **kwargs)
             # q(finding | x) ~ Bernoulli(f(x))
             self.encoder_finding = ResNet18(num_outputs=1, **kwargs)
 
@@ -139,7 +135,6 @@ class FlowPGM(BasePGM):
             if args.enc_net == "cnn":
                 input_shape=(1,args.input_res,args.input_res)
                 self.encoder_s = CNN(input_shape, num_outputs=1)
-                self.encoder_scanner = CNN(input_shape, num_outputs=1)
                 self.encoder_finding = CNN(input_shape, num_outputs=1)
 
     def model(self, t=None):
@@ -148,17 +143,12 @@ class FlowPGM(BasePGM):
         ps = dist.Bernoulli(logits=self.sex_logit).to_event(1)
         sex = pyro.sample("sex", ps)
 
-        # p(scanner), scanner dist
-        pscanner = dist.Bernoulli(logits=self.scanner_logit).to_event(1)
-        scanner = pyro.sample("scanner", pscanner)
-
         # p(finding), independent finding dist
         pfinding = dist.Bernoulli(logits=self.finding_logit).to_event(1)
         finding = pyro.sample("finding", pfinding)
 
         return {
             "sex": sex,
-            "scanner": scanner,
             "finding": finding,
         }
 
@@ -167,9 +157,6 @@ class FlowPGM(BasePGM):
             if obs["sex"] is None:
                 s_prob = torch.sigmoid(self.encoder_s(obs["x"]))
                 pyro.sample("sex", dist.Bernoulli(probs=s_prob).to_event(1))
-            if obs["scanner"] is None:
-                scanner_prob = torch.sigmoid(self.encoder_scanner(obs["x"]))
-                pyro.sample("scanner", dist.Bernoulli(probs=scanner_prob).to_event(1))
             if obs["finding"] is None:
                 finding_prob = torch.sigmoid(self.encoder_finding(obs["x"]))
                 pyro.sample("finding", dist.Bernoulli(probs=finding_prob).to_event(1))
@@ -183,11 +170,6 @@ class FlowPGM(BasePGM):
             qs_x = dist.Bernoulli(probs=s_prob).to_event(1)
             pyro.sample("sex_aux", qs_x, obs=obs["sex"])
 
-            # q(scanner | x)
-            scanner_prob = torch.sigmoid(self.encoder_scanner(obs["x"]))
-            qscanner_x = dist.Bernoulli(probs=scanner_prob).to_event(1)
-            pyro.sample("scanner_aux", qscanner_x, obs=obs["scanner"])
-
             # q(finding | x)
             finding_prob = torch.sigmoid(self.encoder_finding(obs["x"]))
             qfinding_x = dist.Bernoulli(probs=finding_prob).to_event(1)
@@ -197,28 +179,22 @@ class FlowPGM(BasePGM):
     def predict(self, **obs):
         # q(s | x)
         s_prob = torch.sigmoid(self.encoder_s(obs["x"]))
-        # q(scanner | x)
-        scanner_prob = torch.sigmoid(self.encoder_scanner(obs["x"]))
         # q(finding | x)
         finding_prob = torch.sigmoid(self.encoder_finding(obs["x"]))
 
         return {
             "sex": s_prob,
-            "scanner": scanner_prob,
             "finding": finding_prob,
         }
 
     def predict_unnorm(self, **obs):
         # q(s | x)
         s_logits = self.encoder_s(obs["x"])
-        # q(scanner | x)
-        scanner_logits = self.encoder_scanner(obs["x"])
         # q(finding | x)
         finding_logits = self.encoder_finding(obs["x"])
 
         return {
             "sex": s_logits,
-            "scanner": scanner_logits,
             "finding": finding_logits,
         }
 
