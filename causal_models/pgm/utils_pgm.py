@@ -135,7 +135,7 @@ def plot(x, fig=None, ax=None, nrows=1, cmap='Greys_r', norm=None, cbar=False, s
 
 
 @torch.no_grad()
-def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8):
+def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8, logger=None):
     n = num_images  # Number of columns
     x = (x[:n].detach().cpu() + 1) * 127.5
     cf_x = (cf_x[:n].detach().cpu() + 1) * 127.5
@@ -204,21 +204,21 @@ def plot_cf(x, cf_x, pa, cf_pa, do, var_cf_x=None, num_images=8):
     return fig
 
 
-def calculate_loss(pred_batch_, target_batch, loss_norm="l1", soft_loss="BCElogits"):
+def calculate_loss(pred_batch, target_batch, loss_norm="l1", soft_loss="BCElogits"):
     """Calculate the losses for pred_batch"""
-    loss = 0
-    pred_batch = {}
-    for k in pred_batch_.keys():
-        pred_batch[k] = torch.squeeze(pred_batch_[k], dim=-1)
+    loss = 0    
     for k in pred_batch.keys():
         assert pred_batch[k].size() == target_batch[k].size(), (
             f"{k} size does not match, pred_batch size {pred_batch[k].size()}; target batch size {target_batch[k].size()}"
         )
-        if k in ["sex", "finding", "scanner"]:
+        if k in ["sex", "scanner"]:
             if soft_loss == "BCElogits":
                 loss += torch.nn.BCEWithLogitsLoss()(pred_batch[k], target_batch[k])
             elif soft_loss == "l1":
                 loss += torch.nn.L1Loss()(pred_batch[k], target_batch[k])
+        elif k in ["finding"]:
+            if soft_loss == "BCElogits":
+                loss += 5*torch.nn.BCEWithLogitsLoss()(pred_batch[k], target_batch[k])
         elif k in ["age"]:
             if loss_norm=="l1":
                 loss+=torch.nn.L1Loss()(pred_batch[k], target_batch[k]) 

@@ -132,12 +132,12 @@ def cf_epoch(args, model, ema, dataloaders, elbo_fn, optimizers, split='train', 
     else:
         preds = {k: [] for k in dag_vars}
         targets = {k: [] for k in dag_vars}
-        train_samples = copy.deepcopy(dataloaders['train'].dataset.get_samples())
+        # train_samples = copy.deepcopy(dataloaders['train'].dataset.get_samples())
 
-        for k in dag_vars:
-            if k!="x":
-                train_samples[k]=torch.from_numpy(np.array(train_samples[k]))
-        n_train = len(dataloaders['train'].dataset)
+        # for k in dag_vars:
+            # if k!="x":
+                # train_samples[k]=torch.from_numpy(np.array(train_samples[k]))
+        # n_train = len(dataloaders['train'].dataset)
 
     loader = tqdm(enumerate(dataloaders[split]), total=len(
         dataloaders[split]), mininterval=0.1)
@@ -155,8 +155,7 @@ def cf_epoch(args, model, ema, dataloaders, elbo_fn, optimizers, split='train', 
             if is_train:
                 do[do_k] = batch[do_k].clone()[torch.randperm(bs)]
             else:
-                do[do_k] = train_samples[do_k].clone()[torch.randperm(n_train)][:bs]
-                do = preprocess(norm(do))
+                do[do_k] = batch[do_k].clone()[torch.randperm(bs)]
 
         with torch.set_grad_enabled(is_train):
             if not is_train:        
@@ -443,20 +442,17 @@ if __name__=="__main__":
                 copy_do_pa = copy.deepcopy(args.do_pa)
                 for pa_k in list(model.pgm.variables.keys()) + [None]:
                     args.do_pa = pa_k
-                    valid_stats, metrics = cf_epoch(
+                    valid_stats = cf_epoch(
                         args, model, ema, dataloaders, elbo_fn, None,
                         split='valid',
                     )
                     loginfo(f'valid do({pa_k})', logger, valid_stats)
-                    loginfo(f'valid do({pa_k})', logger, metrics)
                 args.do_pa = copy_do_pa
 
                 for k, v in stats.items():
                     writer.add_scalar('train/'+k, v, args.step)
                     writer.add_scalar('valid/'+k, valid_stats[k], args.step)
-                
-                for k, v in metrics.items():    
-                    writer.add_scalar('valid/'+k, v, args.step)
+ 
                 
                 writer.add_scalar('loss/train', stats['loss'], args.step)
                 writer.add_scalar('loss/valid', valid_stats['loss'], args.step)
@@ -490,9 +486,8 @@ if __name__=="__main__":
         model.load_state_dict(ckpt['model_state_dict'])
         ema.ema_model.load_state_dict(ckpt['ema_model_state_dict'])
         elbo_fn = TraceStorage_ELBO(num_particles=1)
-        stats, metrics = cf_epoch(
+        stats = cf_epoch(
             args, model, ema, dataloaders, elbo_fn, None, 
             split='test',
         )
         print(f'\n[test] '+' - '.join(f'{k}: {v:.4f}' for k, v in stats.items()))
-        print(f'[test] '+' - '.join(f'{k}: {v:.4f}' for k, v in metrics.items()))
