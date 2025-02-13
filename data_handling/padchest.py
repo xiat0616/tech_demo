@@ -72,29 +72,29 @@ def prepare_padchest_csv():
     df = df.loc[df.Pediatric == "No"]
 
     # Load the manually labeled CSV for filtering
-    manual_labels = pd.read_csv(PADCHEST_ROOT / "manual_labelled_padchest.csv")
+    # manual_labels = pd.read_csv(PADCHEST_ROOT / "manual_labelled_padchest.csv")
 
     # Merge the dataframes on "StudyDate_DICOM", "StudyID", "PatientID", and "ImageID"
-    df = pd.merge(
-        df,
-        manual_labels,
-        on=["StudyDate_DICOM", "StudyID", "PatientID", "ImageID"],
-        how="inner",
-    )
+    # df = pd.merge(
+        # df,
+        # manual_labels,
+        # on=["StudyDate_DICOM", "StudyID", "PatientID", "ImageID"],
+        # how="inner",
+    # )
 
     # Filter out images marked as bad
-    df = df.loc[df.bad == 0]
+    # df = df.loc[df.bad == 0]
 
     def process(x, target):
         if isinstance(x, str):
             list_labels = x[1:-1].split(",")
             list_labels = [label.replace("'", "").strip() for label in list_labels]
+            # print(f"{target}, {list_labels}")
             return target in list_labels
         else:
             return False
 
     for label in [
-        "pneumonia",
         "exclude",
         "suboptimal study",
     ]:
@@ -102,6 +102,30 @@ def prepare_padchest_csv():
     
     df = df.loc[~df.exclude]
     df = df.loc[~df["suboptimal study"]]
+
+    def process_2(x):
+        if isinstance(x, str):
+            list_labels = x[1:-1].split(",")
+            list_labels = [label.replace("'", "").strip().lower() for label in list_labels]  # Normalize case
+            return "normal" in list_labels or "pleural effusion" in list_labels
+        return False
+
+    df = df[df.Labels.astype(str).apply(process_2)]
+
+    def classify_finding(x):
+        if isinstance(x, str):
+            list_labels = x[1:-1].split(",")
+            list_labels = [label.replace("'", "").strip().lower() for label in list_labels]  # Normalize case
+            
+            if "normal" in list_labels:
+                return 0  # Only "normal"
+            elif "pleural effusion" in list_labels:
+                return 1  # Contains "pleural effusion"
+        
+        return None  # Default case (if neither condition is met)
+
+    df["finding"] = df.Labels.astype(str).apply(classify_finding)
+
     
     df["Manufacturer"] = df.Manufacturer_DICOM.apply(
         lambda x: "Phillips" if x == "PhilipsMedicalSystems" else "Imaging"
@@ -142,21 +166,24 @@ class PadChestDataset(Dataset):
         cache: bool = False,
     ): 
         super().__init__()
-        df.fillna(0, inplace=True)
+
+        df = df.copy()  # Ensure df is an independent DataFrame
+
+        manufacturer_mapping = {"Phillips": 0, "OtherManufacturerName": 1}  # Replace with actual manufacturer names
+        sex_mapping = {"M": 0, "F": 1}
+
+        df.loc[:, :] = df.fillna(0)  # Avoid inplace modifications
+        df.loc[:, "Manufacturer"] = df.Manufacturer.map(manufacturer_mapping).fillna(1).astype(int)
+        df.loc[:, "PatientSex_DICOM"] = df.PatientSex_DICOM.map(sex_mapping).fillna(-1).astype(int)
+
+        # df.fillna(0, inplace=True)
         df.reset_index(inplace=True)
         print(f"Len {len(df)}")
-        print(df.pneumonia.value_counts(normalize=True))
+        print(df.finding.value_counts(normalize=True))
         print(df.Manufacturer.value_counts(normalize=True))
-        # Transform 'Manufacturer' into 0 or 1
-        manufacturer_mapping = {"Phillips": 0, "OtherManufacturerName": 1}  # Replace with actual manufacturer names
-        df["Manufacturer"] = df.Manufacturer.map(manufacturer_mapping).fillna(1).astype(int)
-
-        # Transform 'PatientSex_DICOM' into 0 or 1
-        sex_mapping = {"M": 0, "F": 1}
-        df["PatientSex_DICOM"] = df.PatientSex_DICOM.map(sex_mapping).fillna(-1).astype(int)
-
+    
         self.parents = parents
-        self.finding = df.pneumonia.astype(int).values
+        self.finding = df.finding.astype(int).values
         self.img_paths = df.ImageID.values
         self.sex = df.PatientSex_DICOM.values
         self.ages = df.PatientAge.values
@@ -256,9 +283,9 @@ class PadChestDataModule(BaseDataModuleClass):
         self.target_size = self.config.data.augmentations.resize
 
         # Load the DataFrames from pre-saved CSV files in PADCHEST_ROOT
-        self.train_df = pd.read_csv(PADCHEST_ROOT / "train_dataset.csv")
-        self.val_df = pd.read_csv(PADCHEST_ROOT / "val_dataset.csv")
-        self.test_df = pd.read_csv(PADCHEST_ROOT / "test_dataset.csv")
+        self.train_df = pd.read_csv(PADCHEST_ROOT / "train_dataset_for_raghav.csv")
+        self.val_df = pd.read_csv(PADCHEST_ROOT / "val_dataset_for_raghav.csv")
+        self.test_df = pd.read_csv(PADCHEST_ROOT / "test_dataset_for_raghav.csv")
 
         self.dataset_train = PadChestDataset(
             df=self.train_df,
@@ -317,9 +344,9 @@ class PadChestDataModule(BaseDataModuleClass):
 #         test_df = df.loc[df.PatientID.isin(test_id)]
 
 #         # Save the DataFrames to CSV files in the current folder
-#         train_df.to_csv("train_dataset.csv", index=False)
-#         val_df.to_csv("val_dataset.csv", index=False)
-#         test_df.to_csv("test_dataset.csv", index=False)
+#         train_df.to_csv(PADCHEST_ROOT/"train_dataset_for_raghav.csv", index=False)
+#         val_df.to_csv(PADCHEST_ROOT/"val_dataset_for_raghav.csv", index=False)
+#         test_df.to_csv(PADCHEST_ROOT/"test_dataset_for_raghav.csv", index=False)
 
 #         self.dataset_train = PadChestDataset(
 #             df=train_df,

@@ -437,8 +437,8 @@ def write_images(args, model, batch):
         cf_pa = copy.deepcopy(pa)
         cf_pa = {k: batch[k] for k in args.parents_x}
 
-        cf_pa["sex"] = 1 - cf_pa["sex"]
-        do = {"sex": cf_pa["sex"]}
+        cf_pa["finding"] = 1 - cf_pa["finding"]
+        do = {"finding": cf_pa["finding"]}
 
         _cf_pa = torch.cat([cf_pa[k] for k in args.parents_x], dim=1)
         _cf_pa = (
